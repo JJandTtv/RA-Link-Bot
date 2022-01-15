@@ -1,0 +1,219 @@
+.gitignore
+
+node_modules
+package-lock.json
+
+
+.replit
+
+language = "nodejs"
+run = "npm start"
+
+
+bot.js
+
+const http = require('http');
+const server = http.createServer((req, res) => {
+ res.writeHead(200);
+ res.end('The server is now active!');
+});
+server.listen(3000);
+
+
+// Const declaration
+const Discord = require('discord.js');
+const Sjs = require('@quentingruber/simple-json');
+const simpleGit = require('simple-git')("./");
+const client = new Discord.Client();
+
+
+GetTriggers = function () {  // load data from Triggers.json
+  return Sjs.extract('Triggers.json');
+}
+
+GetConfig = function () { // load data from logininfo.json
+  return (Sjs.extract('Config.json'));
+}
+
+UpdateBot = function () {
+  try {
+    if (simpleGit.pull()) {
+      Triggers_list = GetTriggers();
+      Triggers_keys = Object.keys(Triggers_list);
+      Triggers_values = Object.values(Triggers_list);
+      BanChanel_list = GetConfig().ChanelBan_list
+
+      console.log("Successfully pull info from github repo")
+    }
+  }
+  catch (e) {
+    console.log(e)
+    return 0
+  }
+  return 1
+}
+
+client.on('ready', () => {
+  console.log(`Logged in as ${client.user.tag}!`);
+  var TimeBetweenUpdt = GetConfig().TimeBetweenUpdt
+  if (TimeBetweenUpdt != 0) { // disable update if TimeBetweenUpdt == 0
+    if (!UpdateBot()) {
+      console.log("Bot not updated")
+      Triggers_list = GetTriggers();
+      Triggers_keys = Object.keys(Triggers_list);
+      Triggers_values = Object.values(Triggers_list);
+      BanChanel_list = GetConfig().ChanelBan_list
+    }
+    UpdateInterval = setInterval(UpdateBot, TimeBetweenUpdt * 1000)
+  }
+  else { // if update is disable
+    console.log("Update disable !")
+    Triggers_list = GetTriggers();
+    Triggers_keys = Object.keys(Triggers_list);
+    Triggers_values = Object.values(Triggers_list);
+    BanChanel_list = GetConfig().ChanelBan_list
+  }
+});
+
+client.on('message', msg => {
+  // when the bot see a msg
+
+  if (!BanChanel_list.includes(msg.channel.id)) {
+
+    var Current_trigger = 0;
+
+    Triggers_keys.forEach(Trigger => {  // for each trigger 
+      if (msg.content.toLowerCase().includes(Trigger) && !msg.author.bot) {  // check if the new msg is a trigger
+
+
+        // init flag
+        var IsPrivateMsg = false;
+
+        // if the trigger answer is a simple string
+        if (typeof (Triggers_values[Current_trigger]) == typeof ("")) {
+          msg.reply(Triggers_values[Current_trigger]);
+        }
+
+
+        // if is an object
+
+        if (typeof (Triggers_values[Current_trigger]) == typeof ({ a: 1 })) {
+
+          // get object length
+          var Trigger_length = Object.keys(Triggers_values[Current_trigger]).length
+
+          // check every value in the object to find flag
+          for (var i = 0; i < Trigger_length; i++) {
+            if (Triggers_values[Current_trigger][i] == "Pmsg") {
+              IsPrivateMsg = true;
+            }
+          }
+
+          if (IsPrivateMsg) {  // if has the private message flag
+            for (var i = 0; i < Object(Triggers_values[Current_trigger][0]).length; i++) {
+              msg.author.send(Triggers_values[Current_trigger][0]);
+            }
+          }
+          else { // if is a standard message
+            for (var i = 0; i < Trigger_length; i++) {
+              msg.reply(Triggers_values[Current_trigger][i]);
+            }
+          }
+
+        }
+
+      }
+      Current_trigger += 1
+    });
+  }
+});
+
+client.login(GetConfig().Token);
+
+client.once('ready', () => { client.user.setActivity('use ohelp | oinvite', { type: "WATCHING" }); });
+
+
+
+.Config.json
+ 
+
+{
+    "Token":"NzQ4MjExODAzNjQwNTYxNjc3.X0aIiw.vS9ZEn8xWdrnk7socZ8_q8wU934",
+    "TimeBetweenUpdt":0,
+    "ChanelBan_list":["ChanelID","AnotherChanelID"]
+}
+
+
+
+
+.Triggers.json
+
+
+{
+    "<@!748211803640561677>":"Hey! How can I hel? Use `ohelp` for a full list of avalible commands!",
+
+    "ohelp":[["`COMMANDS` | **INFO** => `oinfo`, `obothelp`, `olist`, `osubmitserver`, `oinvite` | **PRIVATE SERVERS** => `dhps`"],"Pmsg"],
+
+    "omod":"If you don't want me to send messages in a particular channel (like you dont want me sending links in general), simply deny my permission as shown: ",
+
+    "oinvite":[["`Invite me by using this link!` https://discord.com/api/oauth2/authorize?client_id=748211803640561677&permissions=274878024704&scope=bot"],"Pmsg"],
+
+    "olist":[["`LIST OF ALL SHORTENED WORDS:` `dhps` => **Da Hood**,| `IF A GAME YOU WANT IS NOT HERE, PLEASE JOIN 'discord.gg/odhc', AND USE THE DESIGNATED SUGGESTIONS CHANNELS & WE'LL ADD YOUR DESIRED GAME SOON!`"],"Pmsg"],
+
+    "obothelp":[["For assist on how to use <@!7482118036405999>, please visit discord.gg/ and use the designated support channels!"],"Pmsg"],
+
+    "oinfo":[["The Developer & Owner of the bot => <@>, ID: `565526184230912001` | #000"],"Pmsg"],
+
+    "dhps":["**DA HOOD PRIVATE SERVERS** | `NOTICE: ALL LINKS ARE EMBEDED TO STOP DISCORD FROM RATELIMITING ME.`", "<https://www.roblox.com/games/2788229376?privateServerLinkCode=76900906807525049609566863515760>","<https://www.roblox.com/games/2788229376?privateServerLinkCode=76900906807525049609566863515760>","<https://www.roblox.com/games/2788229376?privateServerLinkCode=76900906807525049609566863515760>","<https://www.roblox.com/games/2788229376?privateServerLinkCode=76900906807525049609566863515760>","<https://www.roblox.com/games/2788229376?privateServerLinkCode=76900906807525049609566863515760>"],
+
+    
+    "osubmitserver":[["To submit your link, please join `discord.gg/`, and use the designated submit channels. Once your link has been verified to work, it will be added to the list, if you decide to change or edit your link please let the Admin's know so we can edit these changes, making the bot more efficent & smoother for users."],"Pmsg"]
+}
+
+# Installation
+
+.README.md
+
+
+* `npm start`
+
+
+# How to use
+
+## Token 
+
+[Create Discord Bot](https://github.com/QuentinGruber/Gitord/wiki/Create-your-discord-bot)
+
+Put your discord bot token in **loginfo.json**
+
+## Triggers
+
+List all your triggers in **Triggers.json**
+
+
+Simple answer exemple:
+
+`"Trigger":"text"`
+
+multiple answer exemple:
+
+`"Trigger":["text","text2"]`
+
+Private message answer exemple:
+
+`Trigger":[["text"],["Pmsg"]]`
+
+
+# Update
+
+If you set a "TimeBetweenUpdt" (in ms) in config.json , your bot will fetch update from his Github repository
+
+
+# Flag
+
+* Pmsg = private message
+
+
+
+
+
